@@ -38,13 +38,19 @@ module's `build/compose-previews/` copy unless `guidelines` names a file or URL)
   key from `COMPOSE_PREVIEW_MODEL_KEY` here, because the caller picks the endpoint. Endpoints report
   no cost, so `max_cost` does not apply.
 
-## Apps in Robolectric's simulator: `simulator_*`
+## Apps in Robolectric's simulator: `android_simulator_*`
 
 Ten tools run an Android APK in Robolectric's simulator and let the agent drive it, over
-compose-ai-tools' `compose-preview launch <apk> --control stdio` (its `docs/SIMULATOR.md` has the
-control protocol and the constraints). No emulator, device or `adb`.
+compose-ai-tools' `compose-preview android-simulator <apk> --control stdio` (invoked by its original
+name, `launch`, which every CLI release has; its `docs/SIMULATOR.md` and
+[preview.coo.ee/start/simulator/](https://preview.coo.ee/start/simulator/) have the control protocol,
+what it can test and the constraints). No emulator, device or `adb`. Each tool's title starts
+"Android simulator:", so they read apart from the preview tools.
 
-- **`simulator_launch`** `{apk?, headless?, showAgent?, qualifiers?, fontScale?, sdk?, java?, pair?, install?, watchface?, dwfRuntime?, themeFromWatchface?, project?, module?, variant?, live?, launcher?, widgets?, tiles?}` starts
+The tools were named `simulator_*` before; those names are still answered (a host allowlist or a
+saved prompt keeps working) but no longer listed.
+
+- **`android_simulator_launch`** `{apk?, headless?, showAgent?, qualifiers?, fontScale?, sdk?, java?, pair?, install?, watchface?, dwfRuntime?, themeFromWatchface?, project?, module?, variant?, live?, launcher?, widgets?, tiles?}` starts
   one and waits for its `ready` event: a simulator id, the package, display size and first
   activity. `install` adds extra APKs (such as a `ComplicationDataSourceService` or Watch Face Push
   app) on the same simulated device bus; on Wear, `watchface` activates a `WatchFaceService` or
@@ -56,7 +62,7 @@ control protocol and the constraints). No emulator, device or `adb`.
   CLI's cache. **The window stays up unless `headless`**, so the person watches the agent work: the
   CLI draws each tap and swipe the agent sends over it and names the command along the bottom.
   With no display (CI, a cloud sandbox) the CLI runs headless anyway.
-- **`simulator_command`** `{simulator?, cmd, …}` sends one control-channel command — `tap`,
+- **`android_simulator_command`** `{simulator?, cmd, …}` sends one control-channel command — `tap`,
   `longPress`, `swipe`, `key`, `back`, `text`, `hierarchy`, `find`, `launch`, `finish`,
   `activities`, `startActivity`, `startService`, `stopService`, `bindService`, `unbindService`,
   `services`, `broadcast`, `notifications`, `query`, `components`, `qualifiers`, `permissions`
@@ -83,25 +89,25 @@ control protocol and the constraints). No emulator, device or `adb`.
   `rotary` for the crown — with its arguments beside `cmd`, and returns its result plus the `events` the app produced since
   the last call (activities resumed or destroyed by its own navigation, services started,
   `watchfaceColors`, intents nothing handled).
-- **`simulator_screenshot`** returns the display as an image block (never the window's overlay).
-- **`simulator_watchface_snapshot`** `{simulator?, path?, device?}` captures `watchface {op: status}`
+- **`android_simulator_screenshot`** returns the display as an image block (never the window's overlay).
+- **`android_simulator_watchface_snapshot`** `{simulator?, path?, device?}` captures `watchface {op: status}`
   (active watch face, palette colors, `themeFromWatchface`, configurations, complication slots, and
   pushed slots) together with the current display PNG in one call.
-- **`simulator_logs`** `{simulator?, device?, contains?, lines?}` returns the latest lines the
+- **`android_simulator_logs`** `{simulator?, device?, contains?, lines?}` returns the latest lines the
   simulator logged (the app's logcat, Robolectric, stack traces), plus the events since the last
   call.
-- **`simulator_restart`** `{simulator?, device?, keepData?}` starts the app again in a fresh
+- **`android_simulator_restart`** `{simulator?, device?, keepData?}` starts the app again in a fresh
   simulator JVM: a new process, so statics, singletons and in-memory state reset, while its data
   (files, databases, preferences, external storage) is kept unless `keepData: false`. The session
-  and its id survive. **`simulator_update`** `{apk, keepData?}` does the same with another APK, a
+  and its id survive. **`android_simulator_update`** `{apk, keepData?}` does the same with another APK, a
   rebuild, as `adb install -r` does; its classes come from the CLI's conversion cache when that
   exact APK was converted before. Both answer with the new `info` and where the time went
   (`standby`, `snapshotMs`, `stopMs`, `startMs`, `totalMs`, and `startup`: `jvmMs`, `sandboxMs`,
-  `applicationMs`, `firstActivityMs`); `simulator_update` adds `conversion` (`cached`, `ms`).
+  `applicationMs`, `firstActivityMs`); `android_simulator_update` adds `conversion` (`cached`, `ms`).
   `standby: true` on the launch (the default with `project`) keeps a second simulator JVM
   prepared up to the app's own code, which a restart or a class reload takes over: the JVM,
   Robolectric's sandbox and the framework's setup are already paid.
-- **`simulator_reload`** `{files?, hotswap?, full?, keepData?}`, for a simulator launched with `project` (the app's
+- **`android_simulator_reload`** `{files?, hotswap?, full?, keepData?}`, for a simulator launched with `project` (the app's
   Gradle build; `apk` is then optional, and the CLI builds it): compiles the module (its Kotlin and
   Java compile tasks, which relink resources too, and no dexing or packaging) and restarts the app
   with the classes that changed since the launch ahead of the converted APK. It answers with
@@ -121,7 +127,7 @@ control protocol and the constraints). No emulator, device or `adb`.
   (for example, no preview daemon is running for the file's module). A composable-only edit is
   hot-swapped (`mode: hotswap`) and keeps the screen and its saved state; a restart says why in
   `hotswapSkipped`, and `hotswap: false` always restarts.
-- **`simulator_adb`** `{simulator?, args | command, output?, timeoutMs?}`, for a simulator launched
+- **`android_simulator_adb`** `{simulator?, args | command, output?, timeoutMs?}`, for a simulator launched
   with `adb: true`: runs the SDK's `adb -s <serial>` with `args` (or one `command` line) against
   the simulator, which `launch --adb` serves to adb and Android Studio as an emulator
   (`emulator-5554` and up). `install` / `uninstall` (each boots a simulator on the new package;
@@ -131,21 +137,21 @@ control protocol and the constraints). No emulator, device or `adb`.
   `/data/local/tmp` and `/sdcard` (a pull names its local path, as adb's does), and `exec-out screencap -p` with `output` (stdout written there
   as bytes). It returns `exitCode`, `stdout` (or `output` and `bytes`), `stderr` and the
   simulator's events; options that point adb at another device or server (`-s`, `connect`,
-  `kill-server`, …) are refused. `simulator_launch` with `adb` needs no `apk` (the device boots to
+  `kill-server`, …) are refused. `android_simulator_launch` with `adb` needs no `apk` (the device boots to
   its home screen, or with `formFactor: wear` its watch face); an `apk` given is installed before
   the launch answers, and the result's `device` holds the `serial`, `adbPort`, `consolePort` and
   `grpcPort`.
-- **`simulator_stop`** closes one. `simulator` is optional while only one runs; every simulator
+- **`android_simulator_stop`** closes one. `simulator` is optional while only one runs; every simulator
   ends with the server.
 
 **A phone and its watch.** `pair` (a Wear OS APK) runs `launch --pair`: the phone app and the watch
 app in two simulators joined by a simulated Wearable Data Layer, under one simulator id.
-`simulator_launch` waits for both and returns `info` as `{phone: …, watch: …}`; `device: "watch"`
-on `simulator_command`, `simulator_screenshot` or `simulator_logs` addresses the watch (the phone is
+`android_simulator_launch` waits for both and returns `info` as `{phone: …, watch: …}`; `device: "watch"`
+on `android_simulator_command`, `android_simulator_screenshot` or `android_simulator_logs` addresses the watch (the phone is
 the default); every event carries its `device`, and every log line starts `[phone]` or `[watch]`.
 
 Each simulator is a `compose-preview` child process speaking JSON lines; its stderr (the app's
-logs) is kept as a bounded tail, read with `simulator_logs` and returned when it fails to start or
+logs) is kept as a bounded tail, read with `android_simulator_logs` and returned when it fails to start or
 exits. The CLI is found the
 way `init-script` finds it: `COMPOSE_PREVIEW_CLI`, then `PATH`, then `~/.local/bin`.
 

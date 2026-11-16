@@ -287,14 +287,17 @@ class DaemonMcpServer(
   private val rcViewer =
     RcViewerMcp(subscribers = { uri -> subscriptions.sessionsSubscribedTo(uri) })
 
-  /** APKs in Robolectric's simulator: the `simulator_*` tools over `compose-preview launch`. */
+  /**
+   * APKs in Robolectric's simulator: the `android_simulator_*` tools over `compose-preview
+   * android-simulator`.
+   */
   private val simulators = SimulatorMcp(precompile = ::precompileForReload)
 
   /**
-   * `simulator_reload`'s `files`, compiled as `notify_file_changed` compiles them. Null when every
-   * file is Kotlin or Java and every module compiled for it succeeded, so the classes on disk are
-   * the edit's and the simulator can reload them without its own Gradle compile; otherwise the
-   * first reason it cannot, for the reload's `precompileSkipped`.
+   * `android_simulator_reload`'s `files`, compiled as `notify_file_changed` compiles them. Null
+   * when every file is Kotlin or Java and every module compiled for it succeeded, so the classes on
+   * disk are the edit's and the simulator can reload them without its own Gradle compile; otherwise
+   * the first reason it cannot, for the reload's `precompileSkipped`.
    */
   private fun precompileForReload(files: List<String>): String? {
     if (sourceCompiler == null) return "this server has no preview build compiler"
@@ -3200,7 +3203,7 @@ class DaemonMcpServer(
       "preview-stories" -> toolStorybookPreviewStories(session, args)
       "run-story-tests" -> toolStorybookRunTests(args)
       RcViewerMcp.TOOL_NAME -> rcViewer.handle(name, args)!!
-      in SimulatorMcp.TOOL_NAMES -> simulators.handle(name, args)!!
+      in SimulatorMcp.HANDLED_NAMES -> simulators.handle(name, args)!!
       UiBuilderDesignMcp.TOOL_NAME ->
         uiBuilderDesign?.handle(name, args) ?: errorCallToolResult("unknown tool: $name")
       else ->
