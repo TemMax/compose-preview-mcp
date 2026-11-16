@@ -25,9 +25,10 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * [SimulatorMcp] against a stand-in for `compose-preview launch --control stdio`: a shell script
- * that speaks the protocol (a `ready` event, then one reply per command line, with an event before
- * a `tap` and an error for `explode`), so the tools are tested without a JVM or an APK.
+ * [SimulatorMcp] against a stand-in for `compose-preview launch --control stdio`
+ * (`android-simulator`): a shell script that speaks the protocol (a `ready` event, then one reply
+ * per command line, with an event before a `tap` and an error for `explode`), so the tools are
+ * tested without a JVM or an APK.
  */
 class SimulatorMcpTest {
   @get:Rule val tmp = TemporaryFolder()
@@ -110,6 +111,23 @@ class SimulatorMcpTest {
     assertThat(structured["simulator"]!!.jsonPrimitive.content).isEqualTo("sim-1")
     assertThat(structured["info"]!!.jsonObject["package"]!!.jsonPrimitive.content)
       .isEqualTo("com.example")
+  }
+
+  @Test
+  fun `tools are listed as android_simulator and their old names are still answered`() {
+    val listed = mcp.toolDefs()
+    assertThat(listed.map { it.name }).containsExactlyElementsIn(SimulatorMcp.TOOL_NAMES)
+    for (tool in listed) {
+      assertThat(tool.name).startsWith("android_simulator_")
+      assertThat(tool.title).startsWith("Android simulator: ")
+    }
+    assertThat(SimulatorMcp.LEGACY_NAMES).containsEntry("simulator_launch", SimulatorMcp.LAUNCH)
+
+    // A host that still calls the old name reaches the same tool.
+    val result = call("simulator_launch", buildJsonObject { put("apk", apk().path) })
+    assertThat(result.isError).isNull()
+    assertThat(started.single().first()).isEqualTo("launch")
+    assertThat(call("simulator_stop", buildJsonObject {}).isError).isNull()
   }
 
   @Test
@@ -798,7 +816,7 @@ class SimulatorMcpTest {
   }
 
   @Test
-  fun `simulator_adb runs adb against the device's serial`() {
+  fun `android_simulator_adb runs adb against the device's serial`() {
     val calls = mutableListOf<List<String>>()
     val device = adbMcp(adbCalls = calls)
     try {
@@ -823,7 +841,7 @@ class SimulatorMcpTest {
   }
 
   @Test
-  fun `simulator_adb writes stdout bytes to output and reports a failing exit`() {
+  fun `android_simulator_adb writes stdout bytes to output and reports a failing exit`() {
     val png = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte())
     val device =
       adbMcp(
@@ -861,7 +879,7 @@ class SimulatorMcpTest {
   }
 
   @Test
-  fun `simulator_adb refuses other devices and simulators without adb`() {
+  fun `android_simulator_adb refuses other devices and simulators without adb`() {
     val calls = mutableListOf<List<String>>()
     val device = adbMcp(adbCalls = calls)
     try {
@@ -889,7 +907,7 @@ class SimulatorMcpTest {
   }
 
   @Test
-  fun `simulator_adb gives a command its own timeout, not the launch's`() {
+  fun `android_simulator_adb gives a command its own timeout, not the launch's`() {
     val timeouts = mutableListOf<Long>()
     val device =
       SimulatorMcp(
@@ -1019,7 +1037,7 @@ class SimulatorMcpTest {
   }
 
   @Test
-  fun `simulator_watchface_snapshot returns status and display png together`() {
+  fun `android_simulator_watchface_snapshot returns status and display png together`() {
     val wfMcp =
       SimulatorMcp(
         start = { _, _ ->
