@@ -1232,6 +1232,8 @@ class SimulatorMcp(
           }}
           """,
         ),
+      readOnlyHint = false,
+      destructiveHint = false,
     )
 
   private val updateTool =
@@ -1256,6 +1258,8 @@ class SimulatorMcp(
           }}
           """,
         ),
+      readOnlyHint = false,
+      destructiveHint = false,
     )
 
   private val reloadTool =
@@ -1295,6 +1299,8 @@ class SimulatorMcp(
           }}
           """,
         ),
+      readOnlyHint = false,
+      destructiveHint = false,
     )
 
   private val adbTool =
@@ -1327,6 +1333,8 @@ class SimulatorMcp(
           }}
           """,
         ),
+      readOnlyHint = false,
+      destructiveHint = true,
     )
 
   private val stopTool =
@@ -1341,6 +1349,9 @@ class SimulatorMcp(
           {"type":"object","properties":{"simulator":{"type":"string","description":"Simulator id; optional when only one runs."}}}
           """,
         ),
+      readOnlyHint = false,
+      destructiveHint = true,
+      idempotentHint = true,
     )
 
   /** One adb run: its exit code, stdout as bytes, stderr as text. */
